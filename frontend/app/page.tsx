@@ -1,101 +1,206 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import React, { useState, useEffect } from 'react';
+
+const Calculator = () => {
+  const [display, setDisplay] = useState('');
+  const [isOn, setIsOn] = useState(false);
+  const [history, setHistory] = useState<string[]>([]);
+  const [selectedPen, setSelectedPen] = useState<string | null>(null);
+
+  const togglePower = () => {
+    setIsOn(!isOn);
+    if (!isOn) {
+      setDisplay('');
+      setHistory([]);
+    }
+  };
+
+  const handleButtonClick = (value: string) => {
+    if (isOn) {
+      if (value === '0' && display === '0') return;
+      if (display === '0' && value !== '.') {
+        setDisplay(value); // Замена 0 на новую цифру
+      } else {
+        setDisplay((prev) => prev + value);
+      }
+    }
+  };
+
+  const handleCalculate = async () => {
+    try {
+      const response = await fetch(`http://localhost:3000/calculator`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ expression: display }),
+      });
+      const result = await response.json();
+      setDisplay(result.toString());
+
+      if (selectedPen) {
+        setHistory((prev) => [...prev, `${display} = ${result}`]);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
+  const handlePenClick = (penColor: string) => {
+    setSelectedPen(selectedPen === penColor ? null : penColor);
+  };
+
+  const handleErase = () => {
+    setHistory([]);
+  };
+
+  const handleBackspace = () => {
+    setDisplay((prev) => prev.slice(0, -1));
+  };
+
+  useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      if (!isOn) return;
+
+      if (!isNaN(Number(event.key)) || ['+', '-', '*', '/', '(', ')', '.'].includes(event.key)) {
+        handleButtonClick(event.key);
+      } else if (event.key === 'Enter') {
+        handleCalculate();
+      } else if (event.key === 'Backspace') {
+        handleBackspace();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => {
+      window.removeEventListener('keydown', handleKeyPress);
+    };
+  }, [isOn]);
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+      <div className="flex justify-center items-center h-screen bg-gray-800">
+        <div className="bg-gray-900 p-5 rounded-xl shadow-lg calculator-container mr-10">
+          <div className="calculator-screen bg-green-700 text-white text-right p-3 rounded-lg mb-4 text-3xl h-16">
+            {isOn ? (display || '0') : ''}
+          </div>
+          <div className="grid grid-cols-4 gap-4 calculator-buttons">
+            <button className="bg-red-600 p-4 rounded-lg shadow-lg text-white text-2xl" onClick={togglePower}>
+              On/Off
+            </button>
+            <button className="bg-gray-700 p-4 rounded-lg shadow-lg text-white text-2xl"
+                    onClick={() => handleButtonClick('(')}>
+              (
+            </button>
+            <button className="bg-gray-700 p-4 rounded-lg shadow-lg text-white text-2xl"
+                    onClick={() => handleButtonClick(')')}>
+              )
+            </button>
+            <button className="bg-gray-700 p-4 rounded-lg shadow-lg text-white text-2xl"
+                    onClick={() => handleButtonClick('.')}>
+              .
+            </button>
+            <button className="bg-gray-700 p-4 rounded-lg shadow-lg text-white text-2xl"
+                    onClick={() => handleButtonClick('1')}>
+              1
+            </button>
+            <button className="bg-gray-700 p-4 rounded-lg shadow-lg text-white text-2xl"
+                    onClick={() => handleButtonClick('2')}>
+              2
+            </button>
+            <button className="bg-gray-700 p-4 rounded-lg shadow-lg text-white text-2xl"
+                    onClick={() => handleButtonClick('3')}>
+              3
+            </button>
+            <button className="bg-blue-600 p-4 rounded-lg shadow-lg text-white text-2xl"
+                    onClick={() => handleButtonClick('+')}>
+              +
+            </button>
+            <button className="bg-gray-700 p-4 rounded-lg shadow-lg text-white text-2xl"
+                    onClick={() => handleButtonClick('4')}>
+              4
+            </button>
+            <button className="bg-gray-700 p-4 rounded-lg shadow-lg text-white text-2xl"
+                    onClick={() => handleButtonClick('5')}>
+              5
+            </button>
+            <button className="bg-gray-700 p-4 rounded-lg shadow-lg text-white text-2xl"
+                    onClick={() => handleButtonClick('6')}>
+              6
+            </button>
+            <button className="bg-blue-600 p-4 rounded-lg shadow-lg text-white text-2xl"
+                    onClick={() => handleButtonClick('-')}>
+              -
+            </button>
+            <button className="bg-gray-700 p-4 rounded-lg shadow-lg text-white text-2xl"
+                    onClick={() => handleButtonClick('7')}>
+              7
+            </button>
+            <button className="bg-gray-700 p-4 rounded-lg shadow-lg text-white text-2xl"
+                    onClick={() => handleButtonClick('8')}>
+              8
+            </button>
+            <button className="bg-gray-700 p-4 rounded-lg shadow-lg text-white text-2xl"
+                    onClick={() => handleButtonClick('9')}>
+              9
+            </button>
+            <button className="bg-blue-600 p-4 rounded-lg shadow-lg text-white text-2xl"
+                    onClick={() => handleButtonClick('*')}>
+              *
+            </button>
+            <button className="bg-gray-700 p-4 rounded-lg shadow-lg text-white text-2xl" onClick={() => setDisplay('')}>
+              C
+            </button>
+            <button className="bg-gray-700 p-4 rounded-lg shadow-lg text-white text-2xl"
+                    onClick={() => handleButtonClick('0')}>
+              0
+            </button>
+            <button className="bg-gray-700 p-4 rounded-lg shadow-lg text-white text-2xl"
+                    onClick={() => handleBackspace()}>
+              ⌫
+            </button>
+            <button className="bg-blue-600 p-4 rounded-lg shadow-lg text-white text-2xl"
+                    onClick={() => handleButtonClick('/')}>
+              /
+            </button>
+            <button className="col-span-4 bg-green-500 p-4 rounded-lg shadow-lg text-white text-2xl"
+                    onClick={handleCalculate}>
+              =
+            </button>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+
+        <div className="bg-yellow-100 p-5 rounded-xl shadow-lg notebook-container">
+          <div className="notebook bg-white p-4 rounded-lg shadow-lg mb-5 h-64 overflow-auto">
+            {history.length === 0 ? (
+                <p className="text-gray-400">Page is blank...</p>
+            ) : (
+                history.map((entry, index) => (
+                    <p key={index} className={`text-${selectedPen} border-b border-gray-300 py-1`} style={{ animation: 'write 1s ease-in-out' }}>
+                      {entry}
+                    </p>
+                ))
+            )}
+          </div>
+
+          <div className="pens flex justify-between mb-5">
+            <button className={`pen pen-black ${selectedPen === 'black' ? 'open' : ''}`} onClick={() => handlePenClick('black')}>
+              <span className="text-black">Black pen</span>
+            </button>
+            <button className={`pen pen-blue ${selectedPen === 'blue' ? 'open' : ''}`} onClick={() => handlePenClick('blue')}>
+              <span className="text-blue-500">Blue pen</span>
+            </button>
+            <button className={`pen pen-red ${selectedPen === 'red' ? 'open' : ''}`} onClick={() => handlePenClick('red')}>
+              <span className="text-red-500">Red pen</span>
+            </button>
+          </div>
+
+          <button className="eraser bg-gray-500 text-white p-3 rounded-lg shadow-lg" onClick={handleErase}>
+            Erase all
+          </button>
+        </div>
+      </div>
   );
-}
+};
+
+export default Calculator;
